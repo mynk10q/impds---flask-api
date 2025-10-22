@@ -13,8 +13,8 @@ API_URL = 'http://impds.nic.in/impdsmobileapi/api/getrationcard'
 TOKEN = "91f01a0a96c526d28e4d0c1189e80459"
 USER_AGENT = 'Dalvik/2.1.0 (Linux; U; Android 14; 22101320I Build/UKQ1.240624.001)'
 
-# ✅ API Access Key
-ACCESS_KEY = "apimynk"  # changed key
+# ✅ Updated Access Key
+ACCESS_KEY = "apimynk"
 
 app = Flask(__name__)
 
@@ -50,19 +50,28 @@ def encrypt_payload(plaintext_id: str, session_id: str) -> str:
 
     return b64_double_encoded.decode('utf-8')
 
-# --- Flask Route (GET) ---
+# --- Home Route ---
+@app.route('/')
+def home():
+    return jsonify({
+        "message": "Welcome to IMPDS API",
+        "usage": "Use /fetch?key=apimynk&aadhaar=XXXXXXXXXXXX",
+        "creator": "api by mynk"
+    })
+
+# --- Main Fetch Route ---
 @app.route('/fetch', methods=['GET'])
 def fetch():
     try:
         # ✅ Key Validation
         key = request.args.get("key", "").strip()
         if key != ACCESS_KEY:
-            return jsonify({"error": "Invalid API key"}), 401
+            return jsonify({"error": "Invalid API key", "creator": "api by mynk"}), 401
 
         aadhaar_input = request.args.get("aadhaar", "").strip()
 
         if not aadhaar_input or not aadhaar_input.isdigit() or len(aadhaar_input) != 12:
-            return jsonify({"error": "Invalid Aadhaar number. Must be 12 digits."}), 400
+            return jsonify({"error": "Invalid Aadhaar number. Must be 12 digits.", "creator": "api by mynk"}), 400
 
         session_id = generate_session_id()
         encrypted_id = encrypt_payload(aadhaar_input, session_id)
@@ -80,17 +89,18 @@ def fetch():
         }
 
         response = requests.post(API_URL, headers=headers, json=payload, timeout=15)
-        data = response.json()
 
-        # ✅ Add Tag at the End
-        data["tag"] = "api by mynk"
+        # ✅ Attach "api by mynk" tag in result
+        data = response.json()
+        data["creator"] = "api by mynk"
 
         return jsonify(data)
 
     except requests.exceptions.RequestException as e:
-        return jsonify({"error": f"Network error: {str(e)}", "tag": "api by mynk"}), 500
+        return jsonify({"error": f"Network error: {str(e)}", "creator": "api by mynk"}), 500
     except Exception as e:
-        return jsonify({"error": f"Unexpected error: {str(e)}", "tag": "api by mynk"}), 500
+        return jsonify({"error": f"Unexpected error: {str(e)}", "creator": "api by mynk"}), 500
 
-# --- For Vercel ---
-app = app
+# --- Run Server ---
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
